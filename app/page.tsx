@@ -12,7 +12,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Terminal className="w-6 h-6 text-[#002FA7]" strokeWidth={1.5} />
-            <h1 className="text-xl font-bold font-mono text-black">StackForge</h1>
+            <h1 className="text-xl font-bold font-mono text-black">Maulik Bhimani</h1>
           </div>
           <button 
             onClick={() => router.push('/auth')}
