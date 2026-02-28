@@ -4,7 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Terminal, Download, ArrowLeft, Clock, CheckCircle, XCircle, Loader } from 'lucide-react';
+import {
+  Terminal,
+  Download,
+  ArrowLeft,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Loader,
+} from 'lucide-react';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : '/api';
@@ -18,33 +26,54 @@ export default function History() {
     const loadProjects = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        const response = await axios.get(`${API}/projects`, { headers: { Authorization: `Bearer ${token}` } }); // use projects endpoint
-        // server returns an array of projects
+
+        const response = await axios.get(`${API}/projects`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         setProjects(response.data || []);
       } catch (error) {
-        toast.error('Failed to load projects');
+        console.error('load projects error', error);
+
+        if (axios.isAxiosError(error) && error.response) {
+          toast.error(`Failed to load projects (${error.response.status})`);
+        } else {
+          toast.error('Failed to load projects');
+        }
       } finally {
         setLoading(false);
       }
     };
+
     loadProjects();
   }, []);
 
   const handleDownload = async (projectId: string, projectName: string) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await axios.get(`${API}/projects/${projectId}/zip`, { headers: { Authorization: `Bearer ${token}` }, responseType: 'blob' });
+
+      const response = await axios.get(
+        `${API}/projects/${projectId}/zip`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob',
+        }
+      );
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
+
       link.href = url;
       link.setAttribute('download', `${projectName}.zip`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+
       toast.success('Downloaded!');
     } catch (error) {
       console.error('download error', error);
-      if (error.response) {
+
+      if (axios.isAxiosError(error) && error.response) {
         toast.error(`Download failed (${error.response.status})`);
       } else {
         toast.error('Download failed');
@@ -53,78 +82,134 @@ export default function History() {
   };
 
   const getStatusIcon = (status: string) => {
-    if (status === 'completed') return <CheckCircle className="w-5 h-5 text-green-600" />;
-    if (status === 'failed') return <XCircle className="w-5 h-5 text-red-600" />;
-    return <Loader className="w-5 h-5 text-blue-600 animate-spin" />;
+    if (status === 'completed')
+      return <CheckCircle className="w-5 h-5 text-green-600" />;
+    if (status === 'failed')
+      return <XCircle className="w-5 h-5 text-red-600" />;
+
+    return (
+      <Loader className="w-5 h-5 text-blue-600 animate-spin" />
+    );
   };
 
   return (
     <div className="min-h-screen bg-white text-black">
       <header className="border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
-          <button onClick={() => router.push('/dashboard')} className="text-gray-600 hover:text-gray-900">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="text-gray-600 hover:text-gray-900"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
+
           <div className="flex items-center gap-2">
             <Terminal className="w-6 h-6 text-[#002FA7]" />
-            <h1 className="text-xl font-bold font-mono">StackForge</h1>
+            <h1 className="text-xl font-bold font-mono">
+              StackForge
+            </h1>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-12 text-black" >
-        <h2 className="text-3xl font-bold mb-8 font-mono">Project History</h2>
+      <main className="max-w-7xl mx-auto px-4 py-12 text-black">
+        <h2 className="text-3xl font-bold mb-8 font-mono">
+          Project History
+        </h2>
 
-        {/* loading state */}
         {loading && (
           <div className="text-center py-12">
             <Loader className="w-8 h-8 text-[#002FA7] animate-spin mx-auto" />
           </div>
         )}
 
-        {/* no projects */}
-        {!loading && (projects?.length ?? 0) === 0 && (
+        {!loading && projects.length === 0 && (
           <div className="text-center py-12 bg-gray-50 border border-gray-200 rounded-sm">
             <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">No projects yet</p>
-            <button onClick={() => router.push('/dashboard')} className="bg-[#002FA7] text-white rounded-sm px-6 py-2.5 font-medium">
+            <p className="text-gray-600 mb-4">
+              No projects yet
+            </p>
+
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="bg-[#002FA7] text-white rounded-sm px-6 py-2.5 font-medium"
+            >
               Create Your First Project
             </button>
           </div>
         )}
 
-        {/* projects table */}
-        {!loading && (projects?.length ?? 0) > 0 && (
-          <div className="border border-gray-200 rounded-sm overflow-hidden text-black">
+        {!loading && projects.length > 0 && (
+          <div className="border border-gray-200 rounded-sm overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Project</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Stack</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Created</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">
+                    Project
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">
+                    Stack
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">
+                    Created
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">
+                    Actions
+                  </th>
                 </tr>
               </thead>
+
               <tbody className="divide-y">
                 {projects.map((project: any) => (
-                  <tr key={project.id} className="hover:bg-gray-50">
+                  <tr
+                    key={project.id}
+                    className="hover:bg-gray-50"
+                  >
                     <td className="px-6 py-4">
-                      <div className="font-medium">{project.projectName}</div>
-                      <div className="text-sm text-gray-500 font-mono">{project.cliCommand}</div>
+                      <div className="font-medium">
+                        {project.projectName}
+                      </div>
+                      <div className="text-sm text-gray-500 font-mono">
+                        {project.cliCommand}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm">{project.config?.frontend} • {project.config?.backend}</td>
+
+                    <td className="px-6 py-4 text-sm">
+                      {project.config?.frontend} •{' '}
+                      {project.config?.backend}
+                    </td>
+
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {getStatusIcon(project.status)}
-                        <span className="text-sm capitalize">{project.status}</span>
+                        <span className="text-sm capitalize">
+                          {project.status}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm">{new Date(project.createdAt).toLocaleDateString()}</td>
+
+                    <td className="px-6 py-4 text-sm">
+                      {new Date(
+                        project.createdAt
+                      ).toLocaleDateString()}
+                    </td>
+
                     <td className="px-6 py-4">
                       {project.status === 'completed' && (
-                        <button onClick={() => handleDownload(project.id, project.projectName)} className="text-[#002FA7] text-sm font-medium flex items-center gap-1">
-                          <Download className="w-4 h-4" />Download
+                        <button
+                          onClick={() =>
+                            handleDownload(
+                              project.id,
+                              project.projectName
+                            )
+                          }
+                          className="text-[#002FA7] text-sm font-medium flex items-center gap-1"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download
                         </button>
                       )}
                     </td>
@@ -138,3 +223,143 @@ export default function History() {
     </div>
   );
 }
+// 'use client';
+
+// import { useState, useEffect } from 'react';
+// import { useRouter } from 'next/navigation';
+// import axios from 'axios';
+// import { toast } from 'sonner';
+// import { Terminal, Download, ArrowLeft, Clock, CheckCircle, XCircle, Loader } from 'lucide-react';
+
+// const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+// const API = BACKEND_URL ? `${BACKEND_URL}/api` : '/api';
+
+// export default function History() {
+//   const router = useRouter();
+//   const [projects, setProjects] = useState<any[]>([]);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     const loadProjects = async () => {
+//       try {
+//         const token = localStorage.getItem('auth_token');
+//         const response = await axios.get(`${API}/projects`, { headers: { Authorization: `Bearer ${token}` } }); // use projects endpoint
+//         // server returns an array of projects
+//         setProjects(response.data || []);
+//       } catch (error) {
+//         toast.error('Failed to load projects');
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+//     loadProjects();
+//   }, []);
+
+//   const handleDownload = async (projectId: string, projectName: string) => {
+//     try {
+//       const token = localStorage.getItem('auth_token');
+//       const response = await axios.get(`${API}/projects/${projectId}/zip`, { headers: { Authorization: `Bearer ${token}` }, responseType: 'blob' });
+//       const url = window.URL.createObjectURL(new Blob([response.data]));
+//       const link = document.createElement('a');
+//       link.href = url;
+//       link.setAttribute('download', `${projectName}.zip`);
+//       document.body.appendChild(link);
+//       link.click();
+//       link.remove();
+//       toast.success('Downloaded!');
+//     } catch (error) {
+//       console.error('download error', error);
+//       if (error.response) {
+//         toast.error(`Download failed (${error.response.status})`);
+//       } else {
+//         toast.error('Download failed');
+//       }
+//     }
+//   };
+
+//   const getStatusIcon = (status: string) => {
+//     if (status === 'completed') return <CheckCircle className="w-5 h-5 text-green-600" />;
+//     if (status === 'failed') return <XCircle className="w-5 h-5 text-red-600" />;
+//     return <Loader className="w-5 h-5 text-blue-600 animate-spin" />;
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-white text-black">
+//       <header className="border-b border-gray-200">
+//         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
+//           <button onClick={() => router.push('/dashboard')} className="text-gray-600 hover:text-gray-900">
+//             <ArrowLeft className="w-5 h-5" />
+//           </button>
+//           <div className="flex items-center gap-2">
+//             <Terminal className="w-6 h-6 text-[#002FA7]" />
+//             <h1 className="text-xl font-bold font-mono">StackForge</h1>
+//           </div>
+//         </div>
+//       </header>
+
+//       <main className="max-w-7xl mx-auto px-4 py-12 text-black" >
+//         <h2 className="text-3xl font-bold mb-8 font-mono">Project History</h2>
+
+//         {/* loading state */}
+//         {loading && (
+//           <div className="text-center py-12">
+//             <Loader className="w-8 h-8 text-[#002FA7] animate-spin mx-auto" />
+//           </div>
+//         )}
+
+//         {/* no projects */}
+//         {!loading && (projects?.length ?? 0) === 0 && (
+//           <div className="text-center py-12 bg-gray-50 border border-gray-200 rounded-sm">
+//             <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+//             <p className="text-gray-600 mb-4">No projects yet</p>
+//             <button onClick={() => router.push('/dashboard')} className="bg-[#002FA7] text-white rounded-sm px-6 py-2.5 font-medium">
+//               Create Your First Project
+//             </button>
+//           </div>
+//         )}
+
+//         {/* projects table */}
+//         {!loading && (projects?.length ?? 0) > 0 && (
+//           <div className="border border-gray-200 rounded-sm overflow-hidden text-black">
+//             <table className="w-full">
+//               <thead className="bg-gray-50 border-b">
+//                 <tr>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Project</th>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Stack</th>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Status</th>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Created</th>
+//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase font-mono">Actions</th>
+//                 </tr>
+//               </thead>
+//               <tbody className="divide-y">
+//                 {projects.map((project: any) => (
+//                   <tr key={project.id} className="hover:bg-gray-50">
+//                     <td className="px-6 py-4">
+//                       <div className="font-medium">{project.projectName}</div>
+//                       <div className="text-sm text-gray-500 font-mono">{project.cliCommand}</div>
+//                     </td>
+//                     <td className="px-6 py-4 text-sm">{project.config?.frontend} • {project.config?.backend}</td>
+//                     <td className="px-6 py-4">
+//                       <div className="flex items-center gap-2">
+//                         {getStatusIcon(project.status)}
+//                         <span className="text-sm capitalize">{project.status}</span>
+//                       </div>
+//                     </td>
+//                     <td className="px-6 py-4 text-sm">{new Date(project.createdAt).toLocaleDateString()}</td>
+//                     <td className="px-6 py-4">
+//                       {project.status === 'completed' && (
+//                         <button onClick={() => handleDownload(project.id, project.projectName)} className="text-[#002FA7] text-sm font-medium flex items-center gap-1">
+//                           <Download className="w-4 h-4" />Download
+//                         </button>
+//                       )}
+//                     </td>
+//                   </tr>
+//                 ))}
+//               </tbody>
+//             </table>
+//           </div>
+//         )}
+//       </main>
+//     </div>
+//   );
+// }
