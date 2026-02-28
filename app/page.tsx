@@ -39,6 +39,16 @@ export default function Home() {
             Start Building
           </button>
         </div>
+        <div className="flex justify-center mt-6">
+  <a
+    href="https://docs.google.com/forms/d/e/1FAIpQLSde6Z6wbrLFgvXoY42nOMHlI7kQlbbbDRSrCxn3ZCzByayEdw/viewform?usp=header"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="bg-red-500 text-white hover:bg-green-600 rounded-sm px-6 py-2.5 font-medium inline-block"
+  >
+    DO NOT CLICK (18+ ONLY)
+  </a>
+</div>
       </section>
 
       <section className="py-24 px-4 bg-gray-50">
